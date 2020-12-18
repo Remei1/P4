@@ -33,37 +33,41 @@ ejercicios indicados.
   principal (`sox`, `$X2X`, `$FRAME`, `$WINDOW` y `$LPC`). Explique el significado de cada una de las 
   opciones empleadas y de sus valores.
   
-  `Sox: Explicar què és i que fa`
+  `Sox: permite realizar la conversión de una señal de entrada sin cabecera a una del formato adecuado. Para la conversión se puede elegir cualquier formato de la señal de entrada y los bits utilizados entre otras cosas. Por ejemplo: sox, permite la conversión de una señal de entrada a reales en coma flotante de 32 bits con o sin cabecera.
+  
+  `sox también permite la conversión de señales guardadas en un programa externo, para ello, solo hay que poner el URL de dicha señal, como señal de entrada.`
 
 <img src="img/1.jpg" width="600" align="center">
 
-`x2x: Explicar què és i que fa`
+`x2x: es el programa de SPTK que permite la conversión entre distintos formatos de datos, tal como se puede observar en la siguiente imagen, permite bastantes tipos de conversión, desde convertir a un formato de caracteres, hasta un unsigned long long de 8 bytes. En el caso de convertir a valores numéricos, hay que especificar hasta dónde se quiere que se redondean los valores de salida.`
 
 <img src="img/2.jpg" width="600" align="center">
 
-`Frame: Explicar què és i que fa`
+`Frame:divide la señal de entrada en tramas de “l” muestras con desplazamiento de ventana de periodo “p” muestras que se le indiquen y también puede elegir si el punto de comienzo es centrado o no. El valor máximo de “l” es de 256 y el de “p” es de 100. Un ejemplo sería poner: sptk frame -l 200 -p 40. En este caso le estamos pidiendo que nos divida la señal en tramas de 200 muestras, con un desplazamiento de 40 muestras.`
 
 <img src="img/3.jpg" width="600" align="center">
 
-`Window: Explicar què és i que fa`
+`Window: Multiplica cada trama por una ventana. Se puede elegir el número “l” de muestras por trama del fichero de entrada, que como mucho puede ser de 256 y “L” de muestras por trama del fichero de salida, que también como mucho puede ser 256, el tipo de normalización (si no tiene normalización, si tiene normalización power o magnitude) y el tipo de ventana que se desea utilizar, pudiendo escoger entre 6 opciones distintas de ventana, siendo las 6 ventanas más utilizadas. El tipo de dato de entrada y de salida ha de ser de tipo float.`
 
 <img src="img/4.jpg" width="600" align="center">
 
-`LPC: Explicar què és i que fa`
+`LPC: Realiza un análisis de la señal, usando el método de Levinson-Durbin. Calcula los lpc_order de orden “m” (siendo como mucho 25) de los primeros coeficientes de predicción lineal, precedidos por el factor de ganancia del predictor. Se puede escoger el número “l” de muestras por trama (siendo como mucho 256) y el valor mínimo del determinante de la matriz normal (siendo como mucho 10^-6). Tanto la señal de entrada como la señal de salida tienen un formato float.`
 
 <img src="img/5.jpg" width="600" align="center">
 
 - Explique el procedimiento seguido para obtener un fichero de formato *fmatrix* a partir de los ficheros de
   salida de SPTK (líneas 45 a 47 del script `wav2lp.sh`).
  
-  `Explicar que fa de la línia 41 a 47. És el que va explicar a classe un bon rato (explicar-ho molt bé i amb detall)`
+  `Tal como se puede apreciar en las líneas 42 y 43 de la imagen, inicialmente mediante el comando sox, pasamos la señal de entrada de .wav a una señal de salida unsigned int de 16 bits, sin cabecera ni ningún formato adicional. A continuación, con el comando x2x convertimos los datos de formato short a formato float. Después hacemos un FRAME donde dividimos la señal en tramas de 240 muestras (30 ms) con un desplazamiento de ventana de 80 muestras (10 ms). Una vez dividida la señal, hacemos un WINDOW, para enventanar la señal con una ventana Blackman con 240 muestras de entrada y de salida. Y finalmente con el comando LPC realizamos el cálculo de los ‘lpc_order’ de los primeros coeficientes de predicción lineal con el método de Levison-Durbin pasados por el parámetro -m y con un frame -l de 240 muestras. Una vez finalizado el proceso ponemos un comando ‘>$base.lp’ para redireccionar la salida al fichero $base.lp.
+
+`Una vez procesada la señal y guardada en un fichero, con los comandos de las líneas 42 y 43, en las líneas 46 y 47, procedemos a calcular el número de columnas y el número de filas. Para ello, sabiendo que en primer elemento del vector de predicción se almacena la ganancia del predictor, calculamos las columnas sumando uno al orden del predictor. Y teniendo en cuenta que queremos que en cada fila se almacene cada trama de la señal y cada columna para cada uno de los coeficientes con los que se parametriza la trama. Para realizar el cálculo del número de filas hemos de tener en cuenta la longitud de la señal y la longitud y desplazamiento de la ventana aplicada. Por eso, primero con el comando sox realizamos la conversión de datos del tipo float al tipo ascii. Y a continuación, contamos las líneas con el comando wc-1. Finalmente, ya tenemos creada la matriz, y la imprimimos.`
 
 <img src="img/8.jpg" width="600" align="center">
 
   * ¿Por qué es conveniente usar este formato (u otro parecido)? Tenga en cuenta cuál es el formato de
     entrada y cuál es el de resultado.
     
-  `Explicar amb detall també.`
+  `Se usa este formato, porque para poder identificar correctamente los coeficientes por trama, la matriz nos es muy útil. Y el fichero fmatrix lo utilizamos, porque en este fichero se realiza la parametrización de una señal de voz usando coeficientes de predicción lineal, en el que hay que poner el número de filas y de columnas, seguidos por los datos. Los datos se almacenan en nrow filas de ncol columnas, en los que cada fila corresponde a una trama de señal, y cada columna a cada uno de los coeficientes con los se parametriza la trama. Así tenemos todos coeficientes de la señal a analizar en las diferenes columnas y podemos mostrarlos con el programas fmatrix_show y elegir los coeficientes 2 y 3, que son los que nos piden, con fmatrix_cut. Es decir, este formato, nos facilita trabajar de forma más eficiente con los datos.`
 
 - Escriba el *pipeline* principal usado para calcular los coeficientes cepstrales de predicción lineal
   (LPCC) en su fichero <code>scripts/wav2lpcc.sh</code>:
@@ -124,7 +128,7 @@ Con el comando `fmatrix_show work/lp/BLOCK01/SES017/*.lp | egrep '^\[' | cut -f4
 
   + ¿Cuál de ellas le parece que contiene más información?
   
-        Explicar el perquè, correlacio... etc
+       `A lo largo de esta práctica nos estamos refiriendo siempre a la correlación lineal, aunque no siempre tiene que ser así. En este caso el hecho de que dos parámetros esten corralados significa que teniendo información sobre uno de los parámetros, podemos deducir la información del siguiente. Sin embargo, si estos dos parámetros son incorralados, no es posible deducir la información del segundo parámetro conociendo la información del primero, ya que este podría tomar cualquier valor independientemente del valor del primero. Dado este hecho, podemos considerar que proporcionan el doble de información que uno sólo. Esto es exactamente lo que ocurre con la parametrización MFCC y la parametrización LPCC, los coeficientes están menos corralados, por lo que tenemos más información de la necesaria. `
 
 - Usando el programa <code>pearson</code>, obtenga los coeficientes de correlación normalizada entre los
   parámetros 2 y 3 para un locutor, y rellene la tabla siguiente con los valores obtenidos.
@@ -143,8 +147,12 @@ Con el comando `fmatrix_show work/lp/BLOCK01/SES017/*.lp | egrep '^\[' | cut -f4
   
   + Compare los resultados de <code>pearson</code> con los obtenidos gráficamente.
   
-        Explicar la comparació
-  
+       ` Para realizar la comparación nos hemos basado en que si el resultado de rho es muy cercano a uno en valor absoluto, quiere decir que los dos coeficientes que comparamos están muy correlados entre sí. Basándonos en eso, vemos que en el caso de LP el valor absoluto de rho es 0,872284, un valor bastante cercano a uno, por tanto conociendo el valor de uno de los dos parámetros, podemos deducir el valor del otro. Por lo que se podría decir que la información que nos proporcionan los dos parámetros es la misma que la que proporciona la información de uno solo. `
+
+`Por lo tanto, igual que se puede decir que en el LP los parámetros son corralados por que el valor absoluto de rho es cercano a 1, se puede decir lo opuesto en el caso de los LPCC y los MFCC. En estos dos últimos casos, el valor de rho es cercano a cero, por lo que se podría decir que sus parámetros son incorrelados entre sí. Esto nos dice que la información que nos proporcionan los dos parámetros es distinta a la que nos proporciona la información de uno solo. Por lo que la información conjunta de los dos parámetros nos proporciona el doble de información.` 
+
+`Por las gráficas y los valores de rho obtenidos, podemos decir que los parámetros de LP son correlados, y los de LPCC y MFCC son incorralados. Siendo LPCC más incorralado que MFCC debido a que el valor de rho en los parametros LPCC es más cercano a cero que en el caso de los MFCC. Además mirando las gráficas lo podemos comprobar que se cumple esto último. `
+
 - Según la teoría, ¿qué parámetros considera adecuados para el cálculo de los coeficientes LPCC y MFCC?
 
        Explicar la comparació
